@@ -1,14 +1,28 @@
 "use client";
 
-import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { FiRefreshCw, FiPlus } from "react-icons/fi";
 
+// Define types for group and group member
+interface GroupMember {
+  id: string;
+  display_name: string;
+  leetcode_username: string;
+}
+
+interface Group {
+  id: string;
+  name: string;
+  description?: string;
+  group_members?: GroupMember[];
+}
+
 export default function DashboardPage() {
   const { user } = useUser();
-  const [groups, setGroups] = useState<any[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshingGroupId, setRefreshingGroupId] = useState<string | null>(null);
 
@@ -18,7 +32,7 @@ export default function DashboardPage() {
       setLoading(true);
       const supabase = createClient();
       const { data: groupsData } = await supabase.from("groups").select("*, group_members(*)").eq("owner_id", user?.id);
-      setGroups(groupsData || []);
+      setGroups((groupsData as Group[]) || []);
       setLoading(false);
     }
     if (user?.id) fetchGroups();
@@ -33,7 +47,9 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ group_id: groupId }),
       });
-    } catch {}
+    } catch {
+      // Handle error if needed
+    }
     setTimeout(() => setRefreshingGroupId(null), 1200); // Simulate refresh
   };
 
@@ -62,7 +78,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {groups.map((group: any) => (
+            {groups.map((group) => (
               <div key={group.id} className="bg-white border border-gray-200 rounded-lg shadow-sm p-5 flex flex-col gap-2 hover:shadow-md transition">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-base font-semibold text-gray-900 truncate max-w-[60%]">{group.name}</span>

@@ -7,10 +7,17 @@ import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
+// Remove unused variable 'file'
+// Replace all 'any' with explicit types or Record<string, unknown> as a fallback
+// Remove unused variables (e.g., 'err')
+interface GroupMember {
+  name: string;
+  username: string;
+}
+
 export default function CreateGroupPage() {
   const [groupName, setGroupName] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [members, setMembers] = useState<{ name: string; username: string }[]>([]);
+  const [members, setMembers] = useState<GroupMember[]>([]);
   const [manualName, setManualName] = useState("");
   const [manualUsername, setManualUsername] = useState("");
   const [fileError, setFileError] = useState<string | null>(null);
@@ -26,7 +33,6 @@ export default function CreateGroupPage() {
 
   // Excel/CSV file processing
   const handleFileChange = (f: File | null) => {
-    setFile(f);
     setFileError(null);
     if (!f) return;
     const reader = new FileReader();
@@ -36,7 +42,7 @@ export default function CreateGroupPage() {
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        const json: GroupMember[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
         // Validate columns
         if (!json.length || !("name" in json[0]) || !("username" in json[0])) {
           setFileError('Excel/CSV must have "name" and "username" columns.');
@@ -67,7 +73,7 @@ export default function CreateGroupPage() {
           })
         );
 
-        const validMembers = checkedMembers.filter(Boolean) as { name: string; username: string }[];
+        const validMembers = checkedMembers.filter(Boolean) as GroupMember[];
         // Filter out duplicates already in the preview list
         const existingUsernames = new Set(members.map(m => m.username));
         const uniqueValidMembers = validMembers.filter(m => !existingUsernames.has(m.username));
@@ -79,7 +85,7 @@ export default function CreateGroupPage() {
           ...prev,
           ...uniqueValidMembers
         ]);
-      } catch (err) {
+      } catch {
         setFileError("Failed to parse file. Please upload a valid Excel or CSV file.");
       }
     };
@@ -108,7 +114,7 @@ export default function CreateGroupPage() {
         setManualName("");
         setManualUsername("");
       }
-    } catch (err) {
+    } catch {
       setManualError("Network error. Please try again.");
     }
     setManualLoading(false);

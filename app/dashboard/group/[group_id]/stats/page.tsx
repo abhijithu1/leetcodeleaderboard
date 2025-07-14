@@ -1,22 +1,48 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LabelList } from "recharts";
 
+interface GroupMember {
+  id: string;
+  display_name: string;
+  leetcode_username: string;
+}
+interface Group {
+  id: string;
+  name: string;
+  description?: string;
+  group_members?: GroupMember[];
+  public_link?: string; // Added public_link
+  created_at?: string; // Added created_at
+}
+interface LeetCodeStats {
+  problems_solved: number;
+  contest_rating: number;
+  problems_solved_by_difficulty?: Record<string, number>;
+  recent_submissions?: number;
+  total_submissions?: number;
+  acceptance_rate?: number | null;
+  ranking?: number | null;
+  badges?: unknown[];
+  language_stats?: Record<string, number>;
+  group_member_id?: string; // Added group_member_id
+  created_at?: string; // Added created_at
+}
+
 export default function GroupStatsPage() {
   const params = useParams();
-  const router = useRouter();
   const groupId = params.group_id as string;
-  const [group, setGroup] = useState<any>(null);
-  const [members, setMembers] = useState<any[]>([]);
-  const [stats, setStats] = useState<any[]>([]);
+  const [group, setGroup] = useState<Group | null>(null);
+  const [members, setMembers] = useState<GroupMember[]>([]);
+  const [stats, setStats] = useState<LeetCodeStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<'problems_solved' | 'contest_rating'>('problems_solved');
-  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [currentSortKey, setCurrentSortKey] = useState<'problems_solved' | 'contest_rating'>('problems_solved');
+  const [isAscending, setIsAscending] = useState(false);
 
   const [shareLoading, setShareLoading] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
@@ -51,14 +77,14 @@ export default function GroupStatsPage() {
       }
       setMembers(membersData || []);
       // Fetch latest stats for each member
-      const memberIds = (membersData || []).map((m: any) => m.id);
+      const memberIds = (membersData || []).map((m: GroupMember) => m.id);
       if (memberIds.length === 0) {
         setStats([]);
         setLoading(false);
         return;
       }
       // For each member, get the latest leetcode_stats
-      const statsArr: any[] = [];
+      const statsArr: LeetCodeStats[] = [];
       for (const memberId of memberIds) {
         const { data: statRows } = await supabase
           .from("leetcode_stats")
@@ -80,7 +106,7 @@ export default function GroupStatsPage() {
     setShareLoading(true);
     setShareError(null);
     try {
-      let link = group.public_link;
+      let link = group?.public_link;
       if (!link) {
         // Generate a unique link (e.g., uuid or nanoid)
         link = crypto.randomUUID();
@@ -88,43 +114,45 @@ export default function GroupStatsPage() {
         const { error } = await supabase
           .from("groups")
           .update({ public_link: link })
-          .eq("id", group.id);
+          .eq("id", group?.id);
         if (error) throw new Error("Failed to generate public link");
       }
       const url = `${window.location.origin}/public/${link}`;
       await navigator.clipboard.writeText(url);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 2000);
-    } catch (err) {
-      setShareError("Failed to copy link.");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setShareError("Failed to copy link.");
+      } else {
+        setShareError("Failed to copy link.");
+      }
     }
     setShareLoading(false);
   };
 
   // Merge members and stats for leaderboard
   const leaderboard = members.map((m) => {
-    const stat = stats.find((s) => s.group_member_id === m.id) || {};
+    const stat = stats.find((s) => s.group_member_id === m.id) as LeetCodeStats | undefined;
     return {
       name: m.display_name,
       username: m.leetcode_username,
-      problems_solved: stat.problems_solved ?? 0,
-      contest_rating: stat.contest_rating ?? 0,
-      problems_solved_by_difficulty: stat.problems_solved_by_difficulty ?? { easy: 0, medium: 0, hard: 0 },
-      recent_submissions: stat.recent_submissions ?? 0,
-      total_submissions: stat.total_submissions ?? 0,
-      acceptance_rate: stat.acceptance_rate ?? null,
-      ranking: stat.ranking ?? null,
-      badges: stat.badges ?? [],
+      problems_solved: stat?.problems_solved ?? 0,
+      contest_rating: stat?.contest_rating ?? 0,
+      problems_solved_by_difficulty: stat?.problems_solved_by_difficulty ?? { easy: 0, medium: 0, hard: 0 },
+      recent_submissions: stat?.recent_submissions ?? 0,
+      total_submissions: stat?.total_submissions ?? 0,
+      acceptance_rate: stat?.acceptance_rate ?? null,
+      ranking: stat?.ranking ?? null,
+      badges: stat?.badges ?? [],
     };
   });
 
   // Sort leaderboard
   const sortedLeaderboard = [...leaderboard].sort((a, b) => {
-    if (sortOrder === 'desc') {
-      return b[sortKey] - a[sortKey];
-    } else {
-      return a[sortKey] - b[sortKey];
-    }
+    const aVal = a[currentSortKey] ?? 0;
+    const bVal = b[currentSortKey] ?? 0;
+    return isAscending ? aVal - bVal : bVal - aVal;
   });
 
   return (
@@ -141,8 +169,8 @@ export default function GroupStatsPage() {
         ) : (
           <>
             <div className="mb-6 text-left">
-              <div className="font-bold text-lg">{group.name}</div>
-              <div className="text-xs text-gray-500 mb-2">Created: {new Date(group.created_at).toLocaleString()}</div>
+              <div className="font-bold text-lg">{group?.name}</div>
+              <div className="text-xs text-gray-500 mb-2">Created: {group?.created_at ? new Date(group.created_at).toLocaleString() : 'N/A'}</div>
             </div>
             <div className="mb-8">
               <h2 className="font-semibold mb-2 text-left">Leaderboard</h2>
@@ -152,8 +180,32 @@ export default function GroupStatsPage() {
                     <tr className="bg-indigo-100">
                       <th className="px-4 py-2 text-left">Name</th>
                       <th className="px-4 py-2 text-left">Username</th>
-                      <th className="px-4 py-2 text-left cursor-pointer" onClick={() => setSortKey('problems_solved')}>Problems Solved {sortKey === 'problems_solved' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}</th>
-                      <th className="px-4 py-2 text-left cursor-pointer" onClick={() => setSortKey('contest_rating')}>Contest Rating {sortKey === 'contest_rating' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}</th>
+                      <th
+  className="px-4 py-2 text-left cursor-pointer"
+  onClick={() => {
+    if (currentSortKey === 'problems_solved') {
+      setIsAscending(!isAscending);
+    } else {
+      setCurrentSortKey('problems_solved');
+      setIsAscending(false); // default to descending
+    }
+  }}
+>
+  Problems Solved {currentSortKey === 'problems_solved' ? (isAscending ? '↑' : '↓') : ''}
+</th>
+<th
+  className="px-4 py-2 text-left cursor-pointer"
+  onClick={() => {
+    if (currentSortKey === 'contest_rating') {
+      setIsAscending(!isAscending);
+    } else {
+      setCurrentSortKey('contest_rating');
+      setIsAscending(false);
+    }
+  }}
+>
+  Contest Rating {currentSortKey === 'contest_rating' ? (isAscending ? '↑' : '↓') : ''}
+</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -264,7 +316,7 @@ export default function GroupStatsPage() {
               <ul className="flex flex-wrap gap-4 justify-center">
                 {leaderboard.map((row) => (
                   <li key={row.username} className="bg-indigo-100 rounded px-4 py-2 shadow text-sm">
-                    <span className="font-bold">{row.name}:</span> {Array.isArray(row.badges) && row.badges.length > 0 ? row.badges.map((b: any) => b.name || b.displayName || b.id).join(", ") : "No badges"}
+                    <span className="font-bold">{row.name}:</span> {Array.isArray(row.badges) && row.badges.length > 0 ? row.badges.map((b) => (b as Record<string, unknown>).name || (b as Record<string, unknown>).displayName || (b as Record<string, unknown>).id).join(", ") : "No badges"}
                   </li>
                 ))}
               </ul>

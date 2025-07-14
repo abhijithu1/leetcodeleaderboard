@@ -2,18 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 
+interface GroupMember {
+  id: string;
+  display_name: string;
+  leetcode_username: string;
+}
+interface Group {
+  id: string;
+  name: string;
+  description?: string;
+  group_members?: GroupMember[];
+  owner_id: string; // Added owner_id
+  created_at: string; // Added created_at
+}
+
 export default function GroupDetailsPage() {
   const { user } = useUser();
   const params = useParams();
-  const router = useRouter();
   const groupId = params.group_id as string;
-  const [group, setGroup] = useState<any>(null);
-  const [members, setMembers] = useState<any[]>([]);
+  const [group, setGroup] = useState<Group | null>(null);
+  const [members, setMembers] = useState<GroupMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -77,7 +90,7 @@ export default function GroupDetailsPage() {
         setAdding(false);
         return;
       }
-      const data = await res.json();
+      const data: { matchedUser?: { username: string } } = await res.json();
       if (!data.matchedUser || !data.matchedUser.username) {
         setAddError("LeetCode user not found.");
         setAdding(false);
@@ -128,7 +141,7 @@ export default function GroupDetailsPage() {
         setSavingEdit(false);
         return;
       }
-      const data = await res.json();
+      const data: { matchedUser?: { username: string } } = await res.json();
       if (!data.matchedUser || !data.matchedUser.username) {
         setEditError("LeetCode user not found.");
         setSavingEdit(false);
@@ -194,7 +207,7 @@ export default function GroupDetailsPage() {
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        const json: Record<string, string>[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
         if (!json.length || !("name" in json[0]) || !("username" in json[0])) {
           setFileError('Excel/CSV must have "name" and "username" columns.');
           setFileLoading(false);
@@ -216,7 +229,7 @@ export default function GroupDetailsPage() {
             try {
               const res = await fetch(`/api/leetcode-user?username=${encodeURIComponent(m.username)}`);
               if (!res.ok) return null;
-              const data = await res.json();
+              const data: { matchedUser?: { username: string } } = await res.json();
               if (!data.matchedUser || !data.matchedUser.username) return null;
               return m;
             } catch {
@@ -254,7 +267,7 @@ export default function GroupDetailsPage() {
         }
         setMembers(prev => [...prev, ...(inserted || [])]);
         setFileLoading(false);
-      } catch (err) {
+      } catch {
         setFileError("Failed to parse file. Please upload a valid Excel or CSV file.");
         setFileLoading(false);
       }
@@ -262,6 +275,7 @@ export default function GroupDetailsPage() {
     reader.readAsArrayBuffer(f);
   };
 
+  // Render
   return (
     <main className="min-h-screen flex flex-col items-center bg-gradient-to-br from-white via-indigo-50 to-orange-50">
       <div className="w-full max-w-2xl mt-20 p-8 bg-white rounded-xl shadow text-center">
@@ -276,9 +290,9 @@ export default function GroupDetailsPage() {
         ) : (
           <>
             <div className="mb-4 text-left">
-              <div className="font-bold text-lg">{group.name}</div>
-              <div className="text-xs text-gray-500 mb-2">Created: {new Date(group.created_at).toLocaleString()}</div>
-              <div className="text-xs text-gray-500">Owner: {group.owner_id}</div>
+              <div className="font-bold text-lg">{group?.name}</div>
+              <div className="text-xs text-gray-500 mb-2">Created: {group?.created_at ? new Date(group.created_at).toLocaleString() : 'N/A'}</div>
+              <div className="text-xs text-gray-500">Owner: {group?.owner_id || 'N/A'}</div>
             </div>
             {isOwner && (
               <div className="mb-4 text-left">
@@ -394,4 +408,4 @@ export default function GroupDetailsPage() {
       </div>
     </main>
   );
-} 
+}

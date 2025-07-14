@@ -31,16 +31,16 @@ export async function POST(req: NextRequest) {
       // Problems solved by difficulty
       const acStats = user.matchedUser.submitStats?.acSubmissionNum || [];
       const problemsSolvedByDifficulty = {
-        easy: acStats.find((x: any) => x.difficulty === 'Easy')?.count || 0,
-        medium: acStats.find((x: any) => x.difficulty === 'Medium')?.count || 0,
-        hard: acStats.find((x: any) => x.difficulty === 'Hard')?.count || 0,
+        easy: acStats.find((x: { difficulty: string }) => x.difficulty === 'Easy')?.count || 0,
+        medium: acStats.find((x: { difficulty: string }) => x.difficulty === 'Medium')?.count || 0,
+        hard: acStats.find((x: { difficulty: string }) => x.difficulty === 'Hard')?.count || 0,
       };
       // Total problems solved (existing)
-      const problemsSolved = acStats.find((x: any) => x.difficulty === 'All')?.count || 0;
+      const problemsSolved = acStats.find((x: { difficulty: string }) => x.difficulty === 'All')?.count || 0;
       // Contest rating (existing)
       const contestRating = user.matchedUser.profile?.starRating || 0;
       // Total submissions
-      const totalSubmissions = user.matchedUser.submitStats?.totalSubmissionNum?.find((x: any) => x.difficulty === 'All')?.submissions || 0;
+      const totalSubmissions = user.matchedUser.submitStats?.totalSubmissionNum?.find((x: { difficulty: string }) => x.difficulty === 'All')?.submissions || 0;
       // Acceptance rate (try profile.acceptanceRate, else null)
       const acceptanceRate = (user.matchedUser.profile && 'acceptanceRate' in user.matchedUser.profile)
         ? (user.matchedUser.profile.acceptanceRate as number | null)
@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
           const now = Math.floor(Date.now() / 1000);
           const thirtyDaysAgo = now - 30 * 24 * 60 * 60;
           recentSubmissions = Object.entries(calendar)
-            .filter(([ts, _]) => Number(ts) >= thirtyDaysAgo)
-            .reduce((sum, [_, count]) => sum + Number(count), 0);
+            .filter(([ts]) => Number(ts) >= thirtyDaysAgo)
+            .reduce((sum, [, count]) => sum + Number(count), 0);
         } catch {}
       }
       // Fetch language stats and skill stats using alfa-leetcode-api
@@ -93,11 +93,11 @@ export async function POST(req: NextRequest) {
         badges: badges,
       });
       updated++;
-    } catch (err) {
+    } catch {
       // Log error, skip this user
       continue;
     }
   }
 
   return NextResponse.json({ updated });
-} 
+}

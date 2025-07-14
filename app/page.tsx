@@ -10,6 +10,7 @@ import { FaGithub, FaTwitter, FaLinkedin } from "react-icons/fa";
 import CountUp from "react-countup";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
+import Image from "next/image";
 
 const testimonials = [
   {
@@ -106,7 +107,7 @@ export default function Home() {
           transition={{ delay: 0.3 }}
         >
           <h1 className="text-5xl md:text-7xl font-extrabold mb-6 leading-tight bg-gradient-to-r from-indigo-600 via-orange-500 to-pink-500 bg-clip-text text-transparent animate-gradient-move">
-            Visualize Your <span className="drop-shadow-lg">LeetCode</span> Group's Progress
+            Visualize Your <span className="drop-shadow-lg">LeetCode</span> Group&apos;s Progress
           </h1>
           <p className="text-lg md:text-2xl text-gray-700 mb-8 animate-fade-in">
             Effortlessly create leaderboards, upload group member lists, and compare LeetCode stats with beautiful analytics. Perfect for coding clubs, classrooms, and competitive friends!
@@ -215,8 +216,14 @@ export default function Home() {
             {testimonials.map((t) => (
               <SwiperSlide key={t.name}>
                 <div className="flex flex-col items-center gap-4">
-                  <img src={t.avatar} alt={t.name} className="w-16 h-16 rounded-full shadow" />
-                  <p className="text-lg text-gray-700 italic">“{t.text}”</p>
+                  <Image 
+                    src={t.avatar} 
+                    alt={t.name} 
+                    width={64} 
+                    height={64} 
+                    className="w-16 h-16 rounded-full shadow" 
+                  />
+                  <p className="text-lg text-gray-700 italic">&quot;{t.text}&quot;</p>
                   <span className="font-bold text-indigo-700">{t.name}</span>
                 </div>
               </SwiperSlide>
