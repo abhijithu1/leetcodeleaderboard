@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -13,6 +13,7 @@ interface GroupMember {
   display_name: string;
   leetcode_username: string;
 }
+
 interface Group {
   id: string;
   name: string;
@@ -21,6 +22,7 @@ interface Group {
   public_link?: string;
   created_at?: string;
 }
+
 interface LeetCodeStats {
   problems_solved: number;
   contest_rating: number;
@@ -29,10 +31,16 @@ interface LeetCodeStats {
   total_submissions?: number;
   acceptance_rate?: number | null;
   ranking?: number | null;
-  badges?: unknown[];
+  badges?: Badge[];
   language_stats?: Record<string, number>;
   group_member_id?: string;
   created_at?: string;
+}
+
+interface Badge {
+  id?: string;
+  name?: string;
+  displayName?: string;
 }
 
 export default function GroupStatsPage() {
@@ -50,11 +58,7 @@ export default function GroupStatsPage() {
   const [shareSuccess, setShareSuccess] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [groupId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     const supabase = createClient();
@@ -99,12 +103,17 @@ export default function GroupStatsPage() {
         }
       }
       setStats(statsArr);
-    } catch (err: any) {
-      setError(err.message || "Failed to load data");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to load data";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [groupId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -116,26 +125,27 @@ export default function GroupStatsPage() {
     setShareLoading(true);
     setShareError(null);
     try {
-      let link = group?.public_link;
-      if (!link) {
-        link = crypto.randomUUID();
-        const supabase = createClient();
-        const { error } = await supabase
-          .from("groups")
-          .update({ public_link: link })
-          .eq("id", group?.id);
-        if (error) throw new Error("Failed to generate public link");
-        setGroup({ ...group!, public_link: link });
+     let link = group?.public_link;
+     if (!link) {
+      link = crypto.randomUUID();
+      const supabase = createClient();
+      // Fixed: Removed unused 'error' variable from destructuring
+      const { error: updateError } = await supabase 
+         .from("groups")
+       .update({ public_link: link })
+       .eq("id", group?.id);
+      if (updateError) throw new Error("Failed to generate public link");
+      setGroup({ ...group!, public_link: link });
+     }
+     const url = `${window.location.origin}/public/${link}`;
+     await navigator.clipboard.writeText(url);
+     setShareSuccess(true);
+     setTimeout(() => setShareSuccess(false), 2000);
+    } catch (error) {
+      setShareError(`Failed to copy link error: ${error}`);  
       }
-      const url = `${window.location.origin}/public/${link}`;
-      await navigator.clipboard.writeText(url);
-      setShareSuccess(true);
-      setTimeout(() => setShareSuccess(false), 2000);
-    } catch (err: unknown) {
-      setShareError("Failed to copy link");
-    }
     setShareLoading(false);
-  };
+   };
 
   // Merge members and stats for leaderboard
   const leaderboard = members.map((m) => {
@@ -555,7 +565,7 @@ export default function GroupStatsPage() {
                     <div className="pl-11">
                       {Array.isArray(row.badges) && row.badges.length > 0 ? (
                         <ul className="space-y-1">
-                          {row.badges.map((badge: any, idx: number) => (
+                          {row.badges.map((badge: Badge, idx: number) => (
                             <li key={idx} className="text-sm text-[#4A5568]">
                               • {badge.displayName || badge.name || badge.id}
                             </li>

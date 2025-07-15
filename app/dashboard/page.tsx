@@ -38,10 +38,15 @@ export default function DashboardPage() {
       const supabase = createClient();
       // Check if user exists
       const { data: existing, error: fetchError } = await supabase
-        .from("users")
-        .select("id")
-        .eq("id", user.id)
-        .single();
+  .from("users")
+  .select("id")
+  .eq("id", user.id)
+  .single();
+
+if (fetchError) {
+  console.error("Error checking user existence:", fetchError);
+}
+
       if (!existing) {
         // Insert new user
         await supabase.from("users").insert({
