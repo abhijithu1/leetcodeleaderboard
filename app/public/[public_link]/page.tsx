@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LabelList } from "recharts";
+import { SignedIn } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 
 // Replace 'any' with explicit types for group, group member, and stats
 interface GroupMember {
@@ -135,6 +137,12 @@ export default function PublicGroupStatsPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center bg-gradient-to-br from-white via-indigo-50 to-orange-50">
+      {/* Header bar with profile button */}
+      <SignedIn>
+        <div className="w-full flex justify-end items-center px-4 mb-4">
+          <UserButton afterSignOutUrl="/" />
+        </div>
+      </SignedIn>
       <div className="w-full max-w-3xl mt-20 p-8 bg-white rounded-xl shadow text-center">
         <div className="mb-6 flex justify-between items-center">
           <h1 className="text-3xl font-extrabold text-indigo-700">Group Leaderboard & Stats (Public)</h1>

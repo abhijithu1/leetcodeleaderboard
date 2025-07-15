@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import * as XLSX from "xlsx";
+import { FiUsers, FiArrowLeft, FiUpload, FiUserPlus, FiEdit2, FiTrash2 } from "react-icons/fi";
 
 interface GroupMember {
   id: string;
@@ -277,135 +279,182 @@ export default function GroupDetailsPage() {
 
   // Render
   return (
-    <main className="min-h-screen flex flex-col items-center bg-gradient-to-br from-white via-indigo-50 to-orange-50">
-      <div className="w-full max-w-2xl mt-20 p-8 bg-white rounded-xl shadow text-center">
-        <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-3xl font-extrabold text-indigo-700">Group Details</h1>
-          <Link href="/dashboard" className="text-indigo-500 hover:underline">← Back</Link>
+    <main className="min-h-screen bg-[#F5F7FA]">
+      {/* Top Navigation Bar */}
+      <nav className="bg-[#1A2B50] text-white px-6 py-4 fixed top-0 w-full z-10 shadow-md">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <span className="text-xl font-semibold">LeetBoard</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <UserButton afterSignOutUrl="/" />
+          </div>
         </div>
-        {loading ? (
-          <div>Loading...</div>
-        ) : error ? (
-          <div className="text-red-500">{error}</div>
-        ) : (
-          <>
-            <div className="mb-4 text-left">
-              <div className="font-bold text-lg">{group?.name}</div>
-              <div className="text-xs text-gray-500 mb-2">Created: {group?.created_at ? new Date(group.created_at).toLocaleString() : 'N/A'}</div>
-              <div className="text-xs text-gray-500">Owner: {group?.owner_id || 'N/A'}</div>
-            </div>
-            {isOwner && (
-              <div className="mb-4 text-left">
-                <h3 className="font-semibold mb-2">Add Members from Excel/CSV</h3>
-                <input
-                  type="file"
-                  accept=".xlsx,.csv"
-                  className="border rounded px-4 py-2"
-                  onChange={e => handleFileChange(e.target.files?.[0] || null)}
-                  disabled={fileLoading}
-                />
-                {fileError && <div className="text-red-500 text-xs mt-1">{fileError}</div>}
-                {fileLoading && <div className="text-indigo-500 text-xs mt-1">Processing file...</div>}
+      </nav>
+      <div className="pt-24 px-6 flex flex-col items-center">
+        <div className="w-full max-w-2xl bg-white rounded-xl shadow p-8 mb-8 border border-[#E1E5EB]">
+          {/* Card Header with Icon and Back Button */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-100 text-indigo-600 rounded-full p-2">
+                <FiUsers className="h-6 w-6" />
               </div>
-            )}
-            <div className="mb-6 text-left">
-              <h2 className="font-semibold mb-2">Members</h2>
-              <ul className="space-y-1">
-                {members.map((m, idx) => (
-                  <li key={m.id} className="flex justify-between items-center bg-indigo-50 rounded px-3 py-1">
-                    {editIdx === idx ? (
-                      <>
-                        <input
-                          type="text"
-                          className="border rounded px-2 py-1 mr-2"
-                          value={editName}
-                          onChange={e => setEditName(e.target.value)}
-                        />
-                        <input
-                          type="text"
-                          className="border rounded px-2 py-1 mr-2"
-                          value={editUsername}
-                          onChange={e => setEditUsername(e.target.value)}
-                        />
-                        <button
-                          type="button"
-                          className="text-green-600 text-xs font-bold mr-2"
-                          onClick={() => handleSaveEdit(idx)}
-                          disabled={savingEdit}
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          className="text-gray-500 text-xs font-bold"
-                          onClick={handleCancelEdit}
-                          disabled={savingEdit}
-                        >
-                          Cancel
-                        </button>
-                        {editError && <div className="text-red-500 text-xs mt-1">{editError}</div>}
-                      </>
-                    ) : (
-                      <>
-                        <span>{m.display_name} ({m.leetcode_username})</span>
-                        {isOwner && (
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              className="text-blue-500 text-xs hover:underline"
-                              onClick={() => handleEditMember(idx)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className="text-red-500 text-xs hover:underline"
-                              onClick={() => handleDeleteMember(idx)}
-                              disabled={deletingIdx === idx}
-                            >
-                              {deletingIdx === idx ? "Deleting..." : "Remove"}
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-extrabold text-indigo-700 leading-tight">{group?.name || "Group Details"}</h1>
+                {group?.description && <p className="text-gray-600 text-sm mt-1">{group.description}</p>}
+              </div>
             </div>
-            {isOwner && (
-              <div className="mb-4 text-left">
-                <h3 className="font-semibold mb-2">Add Member</h3>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    className="border rounded px-2 py-1 flex-1"
-                    placeholder="Name"
-                    value={addName}
-                    onChange={e => setAddName(e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    className="border rounded px-2 py-1 flex-1"
-                    placeholder="LeetCode Username"
-                    value={addUsername}
-                    onChange={e => setAddUsername(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600 transition"
-                    onClick={handleAddMember}
-                    disabled={adding}
-                  >
-                    {adding ? "Adding..." : "Add"}
-                  </button>
+            <Link href="/dashboard" className="flex items-center text-indigo-500 hover:underline font-medium">
+              <FiArrowLeft className="mr-1" /> Back
+            </Link>
+          </div>
+          {loading ? (
+            <div className="text-center text-gray-500">Loading...</div>
+          ) : error ? (
+            <div className="text-red-500 text-center">{error}</div>
+          ) : (
+            <>
+              <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-gray-500">Created: {group?.created_at ? new Date(group.created_at).toLocaleString() : 'N/A'}</span>
+                  <span className="text-xs text-gray-500">Owner: {group?.owner_id || 'N/A'}</span>
                 </div>
-                {addError && <div className="text-red-500 text-xs mt-1">{addError}</div>}
               </div>
-            )}
-          </>
-        )}
+              {isOwner && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FiUpload className="text-indigo-500" />
+                    <h3 className="font-semibold text-[#4A5568]">Add Members from Excel/CSV</h3>
+                  </div>
+                  <input
+                    type="file"
+                    accept=".xlsx,.csv"
+                    className="border rounded px-4 py-2"
+                    onChange={e => handleFileChange(e.target.files?.[0] || null)}
+                    disabled={fileLoading}
+                  />
+                  {fileError && <div className="text-red-500 text-xs mt-1">{fileError}</div>}
+                  {fileLoading && <div className="text-indigo-500 text-xs mt-1">Processing file...</div>}
+                </div>
+              )}
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <FiUsers className="text-indigo-500" />
+                  <h2 className="font-semibold text-[#4A5568]">Members</h2>
+                </div>
+                <ul className="space-y-2">
+                  {members.map((m, idx) => (
+                    <li key={m.id} className="flex justify-between items-center bg-indigo-50 rounded px-3 py-2">
+                      {editIdx === idx ? (
+                        <>
+                          <input
+                            type="text"
+                            className="border rounded px-2 py-1 mr-2"
+                            value={editName}
+                            onChange={e => setEditName(e.target.value)}
+                          />
+                          <input
+                            type="text"
+                            className="border rounded px-2 py-1 mr-2"
+                            value={editUsername}
+                            onChange={e => setEditUsername(e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            className="text-green-600 text-xs font-bold mr-2"
+                            onClick={() => handleSaveEdit(idx)}
+                            disabled={savingEdit}
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            className="text-gray-500 text-xs font-bold"
+                            onClick={handleCancelEdit}
+                            disabled={savingEdit}
+                          >
+                            Cancel
+                          </button>
+                          {editError && <div className="text-red-500 text-xs mt-1">{editError}</div>}
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium text-[#4A5568]">{m.display_name} <span className="text-xs text-gray-500">({m.leetcode_username})</span></span>
+                          {isOwner && (
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="flex items-center gap-1 text-blue-500 text-xs hover:underline"
+                                onClick={() => handleEditMember(idx)}
+                              >
+                                <FiEdit2 className="h-4 w-4" /> Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="flex items-center gap-1 text-red-500 text-xs hover:underline"
+                                onClick={() => handleDeleteMember(idx)}
+                                disabled={deletingIdx === idx}
+                              >
+                                <FiTrash2 className="h-4 w-4" /> {deletingIdx === idx ? "Deleting..." : "Remove"}
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {isOwner && (
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FiUserPlus className="text-indigo-500" />
+                    <h3 className="font-semibold text-[#4A5568]">Add Member</h3>
+                  </div>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      className="border rounded px-2 py-1 flex-1"
+                      placeholder="Name"
+                      value={addName}
+                      onChange={e => setAddName(e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      className="border rounded px-2 py-1 flex-1"
+                      placeholder="LeetCode Username"
+                      value={addUsername}
+                      onChange={e => setAddUsername(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600 transition flex items-center gap-1"
+                      onClick={handleAddMember}
+                      disabled={adding}
+                    >
+                      <FiUserPlus className="h-4 w-4" /> {adding ? "Adding..." : "Add"}
+                    </button>
+                  </div>
+                  {addError && <div className="text-red-500 text-xs mt-1">{addError}</div>}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
+      <style jsx global>{`
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </main>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/client";
@@ -200,146 +201,152 @@ export default function CreateGroupPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center bg-gradient-to-br from-white via-indigo-50 to-orange-50">
-      <SignedIn>
-        <div className="w-full max-w-xl mt-20 p-8 bg-white rounded-xl shadow text-center">
-          <h1 className="text-3xl font-extrabold mb-6 text-indigo-700">Create a New Group</h1>
-          <form
-            className="flex flex-col gap-6"
-            onSubmit={handleCreateGroup}
-          >
-            <input
-              type="text"
-              className="border rounded px-4 py-2"
-              placeholder="Group Name"
-              value={groupName}
-              onChange={e => setGroupName(e.target.value)}
-              required
-            />
-            <div className="flex flex-col gap-2 items-start">
-              <label className="font-medium">Upload Excel/CSV (optional):</label>
-              <input
-                type="file"
-                accept=".xlsx,.csv"
-                className="border rounded px-4 py-2"
-                onChange={e => handleFileChange(e.target.files?.[0] || null)}
-              />
-              {fileError && <div className="text-red-500 text-sm">{fileError}</div>}
-            </div>
-            <div className="flex flex-col gap-2 items-start">
-              <label className="font-medium">Add Member Manually:</label>
-              <div className="flex gap-2 w-full">
-                <input
-                  type="text"
-                  className="border rounded px-2 py-1 flex-1"
-                  placeholder="Name"
-                  value={manualName}
-                  onChange={e => setManualName(e.target.value)}
-                />
-                <input
-                  type="text"
-                  className="border rounded px-2 py-1 flex-1"
-                  placeholder="LeetCode Username"
-                  value={manualUsername}
-                  onChange={e => setManualUsername(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600 transition"
-                  onClick={handleAddManualMember}
-                  disabled={manualLoading}
-                >
-                  {manualLoading ? "Checking..." : "Add"}
-                </button>
-              </div>
-              {manualError && (
-                <div className="text-red-500 text-xs mt-1">{manualError}</div>
-              )}
-            </div>
-            <div className="text-left w-full">
-              <h3 className="font-semibold mb-2">Members Preview:</h3>
-              {members.length === 0 ? (
-                <div className="text-gray-500 text-sm">No members added yet.</div>
-              ) : (
-                <ul className="space-y-1">
-                  {members.map((m, idx) => (
-                    <li key={idx} className="flex justify-between items-center bg-indigo-50 rounded px-3 py-1">
-                      {editIdx === idx ? (
-                        <>
-                          <input
-                            type="text"
-                            className="border rounded px-2 py-1 mr-2"
-                            value={editName}
-                            onChange={e => setEditName(e.target.value)}
-                          />
-                          <input
-                            type="text"
-                            className="border rounded px-2 py-1 mr-2"
-                            value={editUsername}
-                            onChange={e => setEditUsername(e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            className="text-green-600 text-xs font-bold mr-2"
-                            onClick={() => handleSaveEdit(idx)}
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            className="text-gray-500 text-xs font-bold"
-                            onClick={handleCancelEdit}
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <span>{m.name} ({m.username})</span>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              className="text-blue-500 text-xs hover:underline"
-                              onClick={() => handleEditMember(idx)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className="text-red-500 text-xs hover:underline"
-                              onClick={() => handleRemoveMember(idx)}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <button
-              type="submit"
-              className="bg-indigo-600 text-white font-bold py-2 rounded hover:bg-indigo-700 transition"
-              disabled={creating || !groupName || members.length === 0}
+    <main className="min-h-screen bg-gray-50 py-12">
+      {/* Header bar with profile button */}
+      <div className="w-full flex justify-end items-center px-4 mb-4">
+        <UserButton afterSignOutUrl="/" />
+      </div>
+      <div className="max-w-2xl mx-auto px-4">
+        <SignedIn>
+          <div className="w-full max-w-xl mt-20 p-8 bg-white rounded-xl shadow text-center">
+            <h1 className="text-3xl font-extrabold mb-6 text-indigo-700">Create a New Group</h1>
+            <form
+              className="flex flex-col gap-6"
+              onSubmit={handleCreateGroup}
             >
-              {creating ? "Creating..." : "Create Group"}
-            </button>
-            {createError && <div className="text-red-500 text-sm mt-2">{createError}</div>}
-          </form>
-          <div className="mt-6">
-            <Link href="/dashboard" className="text-indigo-500 hover:underline">
-              ← Back to Dashboard
-            </Link>
+              <input
+                type="text"
+                className="border rounded px-4 py-2"
+                placeholder="Group Name"
+                value={groupName}
+                onChange={e => setGroupName(e.target.value)}
+                required
+              />
+              <div className="flex flex-col gap-2 items-start">
+                <label className="font-medium">Upload Excel/CSV (optional):</label>
+                <input
+                  type="file"
+                  accept=".xlsx,.csv"
+                  className="border rounded px-4 py-2"
+                  onChange={e => handleFileChange(e.target.files?.[0] || null)}
+                />
+                {fileError && <div className="text-red-500 text-sm">{fileError}</div>}
+              </div>
+              <div className="flex flex-col gap-2 items-start">
+                <label className="font-medium">Add Member Manually:</label>
+                <div className="flex gap-2 w-full">
+                  <input
+                    type="text"
+                    className="border rounded px-2 py-1 flex-1"
+                    placeholder="Name"
+                    value={manualName}
+                    onChange={e => setManualName(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="border rounded px-2 py-1 flex-1"
+                    placeholder="LeetCode Username"
+                    value={manualUsername}
+                    onChange={e => setManualUsername(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600 transition"
+                    onClick={handleAddManualMember}
+                    disabled={manualLoading}
+                  >
+                    {manualLoading ? "Checking..." : "Add"}
+                  </button>
+                </div>
+                {manualError && (
+                  <div className="text-red-500 text-xs mt-1">{manualError}</div>
+                )}
+              </div>
+              <div className="text-left w-full">
+                <h3 className="font-semibold mb-2">Members Preview:</h3>
+                {members.length === 0 ? (
+                  <div className="text-gray-500 text-sm">No members added yet.</div>
+                ) : (
+                  <ul className="space-y-1">
+                    {members.map((m, idx) => (
+                      <li key={idx} className="flex justify-between items-center bg-indigo-50 rounded px-3 py-1">
+                        {editIdx === idx ? (
+                          <>
+                            <input
+                              type="text"
+                              className="border rounded px-2 py-1 mr-2"
+                              value={editName}
+                              onChange={e => setEditName(e.target.value)}
+                            />
+                            <input
+                              type="text"
+                              className="border rounded px-2 py-1 mr-2"
+                              value={editUsername}
+                              onChange={e => setEditUsername(e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              className="text-green-600 text-xs font-bold mr-2"
+                              onClick={() => handleSaveEdit(idx)}
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              className="text-gray-500 text-xs font-bold"
+                              onClick={handleCancelEdit}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span>{m.name} ({m.username})</span>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="text-blue-500 text-xs hover:underline"
+                                onClick={() => handleEditMember(idx)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="text-red-500 text-xs hover:underline"
+                                onClick={() => handleRemoveMember(idx)}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <button
+                type="submit"
+                className="bg-indigo-600 text-white font-bold py-2 rounded hover:bg-indigo-700 transition"
+                disabled={creating || !groupName || members.length === 0}
+              >
+                {creating ? "Creating..." : "Create Group"}
+              </button>
+              {createError && <div className="text-red-500 text-sm mt-2">{createError}</div>}
+            </form>
+            <div className="mt-6">
+              <Link href="/dashboard" className="text-indigo-500 hover:underline">
+                ← Back to Dashboard
+              </Link>
+            </div>
           </div>
-        </div>
-      </SignedIn>
-      <SignedOut>
-        <div className="w-full max-w-xl mt-32 p-8 bg-white rounded-xl shadow text-center">
-          <h2 className="text-2xl font-bold mb-4 text-red-600">You must be signed in to create a group.</h2>
-        </div>
-      </SignedOut>
+        </SignedIn>
+        <SignedOut>
+          <div className="w-full max-w-xl mt-32 p-8 bg-white rounded-xl shadow text-center">
+            <h2 className="text-2xl font-bold mb-4 text-red-600">You must be signed in to create a group.</h2>
+          </div>
+        </SignedOut>
+      </div>
     </main>
   );
 }
